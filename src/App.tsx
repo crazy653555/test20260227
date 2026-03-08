@@ -28,33 +28,10 @@ function App() {
       )}
 
       {currentView === 'SETUP' && (
-        <div className="max-w-7xl mx-auto px-4 py-8">
-          <header className="mb-8 flex items-center justify-between border-b border-gray-800 pb-4">
-            <button
-              onClick={() => setCurrentView('HOME')}
-              className="text-[#13ec5b] hover:text-[#13ec5b]/80 flex items-center gap-2"
-            >
-              <span className="material-symbols-outlined">arrow_back</span>
-              Back to Home
-            </button>
-            <h1 className="text-2xl font-bold flex items-center gap-2 text-white">
-              <span className="material-symbols-outlined text-[#13ec5b]">edit_square</span>
-              Project Setup
-            </h1>
-          </header>
-          <div className="bg-[#1a2e22] rounded-lg p-6 shadow-lg mb-8 text-white border border-gray-800">
-            <PracticeConfig />
-            <div className="mt-6 flex justify-center">
-              <button
-                className="w-full md:w-auto px-8 py-3 bg-[#13ec5b] text-black font-bold text-lg rounded-lg shadow-lg hover:bg-[#13ec5b]/80 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
-                onClick={handleStartPractice}
-                disabled={items.length === 0}
-              >
-                開始訓練
-              </button>
-            </div>
-          </div>
-        </div>
+        <PracticeConfig
+          onStartPractice={handleStartPractice}
+          onBack={() => setCurrentView('HOME')}
+        />
       )}
 
       {currentView === 'PLAYER' && (

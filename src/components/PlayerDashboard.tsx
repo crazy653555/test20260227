@@ -13,7 +13,6 @@ interface PlayerDashboardProps {
 const PREPARE_SECONDS = 3;
 
 export const PlayerDashboard: React.FC<PlayerDashboardProps> = ({ onExit }) => {
-    const { items, restVideoUrl } = usePracticeStore();
     const [currentIndex, setCurrentIndex] = useState(0);
     const [period, setPeriod] = useState<TimerState>('PREPARING');
     const [timeLeft, setTimeLeft] = useState(PREPARE_SECONDS);
@@ -21,22 +20,36 @@ export const PlayerDashboard: React.FC<PlayerDashboardProps> = ({ onExit }) => {
     const [restStartTime, setRestStartTime] = useState(0);
     const [isFullscreen, setIsFullscreen] = useState(false);
 
-    const playerRef = useRef<any>(null);
-    const containerRef = useRef<HTMLDivElement>(null);
+    const { items, restVideoUrl } = usePracticeStore();
     const { speak, cancel } = useTTS();
 
+    const playerRef = useRef<any>(null);
+    const containerRef = useRef<HTMLDivElement>(null);
+
     // 取得任意影片 ID 的 Helper
-    const getYouTubeId = (url: string) => {
-        const match = url.match(/(?:v=|\/)([0-9A-Za-z_-]{11}).*/);
-        return match ? match[1] : '';
+    const extractVideoId = (url: string) => {
+        if (!url) return null;
+        const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|&v=)([^#&?]*).*/;
+        const match = url.match(regExp);
+        return (match && match[2].length === 11) ? match[2] : undefined;
     };
 
     const currentItem = items[currentIndex];
     const nextItem = currentIndex < items.length - 1 ? items[currentIndex + 1] : null;
 
-    const REST_VIDEO_ID = getYouTubeId(restVideoUrl);
-    const currentVideoId = period === 'RESTING' ? REST_VIDEO_ID : currentItem ? getYouTubeId(currentItem.youtubeUrl) : '';
-    const initialVideoId = useRef(currentVideoId).current;
+    const currentStage = items[currentIndex];
+
+    // 依據目前狀態決定要在背景播放哪支影片
+    // 訓練時: 播放階段專屬影片
+    // 休息時: 播放全域休息影片 (若有)，否則顯示空白或單純倒數
+    let activeVideoUrl = '';
+    if (period === 'PRACTICING' && currentStage?.youtubeUrl) {
+        activeVideoUrl = currentStage.youtubeUrl;
+    } else if (period === 'RESTING' && restVideoUrl) {
+        activeVideoUrl = restVideoUrl;
+    }
+
+    const activeVideoId = extractVideoId(activeVideoUrl);
 
     // TTS 播報邏輯
     useEffect(() => {
@@ -123,27 +136,33 @@ export const PlayerDashboard: React.FC<PlayerDashboardProps> = ({ onExit }) => {
         return () => clearInterval(checkInterval);
     }, [period, currentItem, isPaused]);
 
+    // 處理播放器 Ready 的事件
+    // 針對有指定起訖時段的「訓練影片」，或是想要亂數時間起播的「休息影片」
     const onPlayerReady: YouTubeProps['onReady'] = (event) => {
         playerRef.current = event.target;
-        if (period === 'PRACTICING' || period === 'RESTING') {
-            const startSec = period === 'RESTING' ? restStartTime : (currentItem?.startSecond ?? 0);
-            event.target.seekTo(startSec, true);
-            event.target.playVideo();
-        } else {
-            event.target.pauseVideo();
+        if (period === 'PRACTICING' && currentStage?.startSecond) {
+            event.target.seekTo(currentStage.startSecond, true);
+        } else if (period === 'RESTING' && restVideoUrl) {
+            // 休息影片：嘗試給個隨機啟動時間 (如果是長影片)，這裡簡化為隨便跳轉一下
+            const duration = event.target.getDuration();
+            if (duration > 60) {
+                const randomStart = Math.floor(Math.random() * (duration - 30));
+                event.target.seekTo(randomStart, true);
+            }
         }
+        event.target.playVideo(); // Ensure video plays on ready
     };
 
     useEffect(() => {
-        if (playerRef.current && currentVideoId && typeof playerRef.current.loadVideoById === 'function') {
+        if (playerRef.current && activeVideoId && typeof playerRef.current.loadVideoById === 'function') {
             const startSec = period === 'RESTING' ? restStartTime : (currentItem?.startSecond ?? 0);
             if (period === 'PRACTICING' || period === 'RESTING') {
                 try {
-                    playerRef.current.loadVideoById({ videoId: currentVideoId, startSeconds: startSec });
+                    playerRef.current.loadVideoById({ videoId: activeVideoId, startSeconds: startSec });
                 } catch (e) { console.error("YT Player Error:", e); }
             }
         }
-    }, [currentVideoId, period, currentItem?.startSecond, restStartTime]);
+    }, [activeVideoId, period, currentItem?.startSecond, restStartTime]);
 
     const handleNextItem = () => {
         if (currentIndex < items.length - 1) {
@@ -262,7 +281,7 @@ export const PlayerDashboard: React.FC<PlayerDashboardProps> = ({ onExit }) => {
                     {/* YouTube iframe container */}
                     <div className={`w-full aspect-video ${isFullscreen ? 'h-full max-h-none' : 'max-h-[70vh]'} mx-auto overflow-hidden relative shadow-[0_0_50px_rgba(0,0,0,0.8)]`}>
                         <YouTube
-                            videoId={initialVideoId}
+                            videoId={activeVideoId || undefined}
                             opts={{
                                 width: '100%',
                                 height: '100%',
