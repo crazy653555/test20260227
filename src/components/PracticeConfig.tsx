@@ -57,6 +57,7 @@ export const PracticeConfig: React.FC<PracticeConfigProps> = ({ onStartPractice,
     const [editStartSecond, setEditStartSecond] = useState('00:00:00');
     const [editEndSecond, setEditEndSecond] = useState('');
     const [localRestUrl, setLocalRestUrl] = useState('');
+    const [stageToDelete, setStageToDelete] = useState<string | null>(null);
 
     React.useEffect(() => {
         if (restVideoUrl && !localRestUrl) {
@@ -119,9 +120,12 @@ export const PracticeConfig: React.FC<PracticeConfigProps> = ({ onStartPractice,
     const handleStartSecondChange = (val: string) => {
         setEditStartSecond(val);
         const startSec = timeToSeconds(val);
-        const endSec = editEndSecond ? timeToSeconds(editEndSecond) : undefined;
-        if (endSec !== undefined && startSec >= endSec) {
-            setEditEndSecond(''); // 連動防呆：若開始時間大於等於結束時間，重設結束時間為 End
+        if (editEndSecond) {
+            const endSec = timeToSeconds(editEndSecond);
+            if (endSec <= startSec) {
+                // 自動連動，結束時間大於開始時間 1 秒
+                setEditEndSecond(secondsToTime(startSec + 1));
+            }
         }
     };
 
@@ -133,7 +137,8 @@ export const PracticeConfig: React.FC<PracticeConfigProps> = ({ onStartPractice,
         const startSec = timeToSeconds(editStartSecond);
         const endSec = timeToSeconds(val);
         if (endSec <= startSec) {
-            alert('影片結束時間必須大於開始時間！(End time must be greater than Start time!)');
+            // 防呆連動，自動修正為開始時間 + 1 秒
+            setEditEndSecond(secondsToTime(startSec + 1));
             return;
         }
         setEditEndSecond(val);
@@ -313,7 +318,7 @@ export const PracticeConfig: React.FC<PracticeConfigProps> = ({ onStartPractice,
                                                                 <button onClick={() => handleEditStart(item)} className={`size-8 rounded-full hover:bg-slate-100 dark:hover:bg-[#244730] transition-colors flex items-center justify-center ${isEditing ? 'text-[#19e65e]' : 'text-slate-400 hover:text-blue-400'}`} title="Edit">
                                                                     <span className="material-symbols-outlined text-[18px]">edit</span>
                                                                 </button>
-                                                                <button onClick={() => { if (window.confirm('確定要刪除這個訓練階段嗎？(Are you sure you want to delete this stage?)')) removeItem(item.id); }} className="size-8 rounded-full hover:bg-slate-100 dark:hover:bg-[#244730] text-slate-400 hover:text-red-400 transition-colors flex items-center justify-center" title="Delete">
+                                                                <button onClick={() => setStageToDelete(item.id)} className="size-8 rounded-full hover:bg-slate-100 dark:hover:bg-[#244730] text-slate-400 hover:text-red-400 transition-colors flex items-center justify-center" title="Delete">
                                                                     <span className="material-symbols-outlined text-[18px]">delete</span>
                                                                 </button>
                                                             </div>
@@ -454,6 +459,29 @@ export const PracticeConfig: React.FC<PracticeConfigProps> = ({ onStartPractice,
                     </aside>
                 )}
             </div>
+
+            {/* Custom Delete Confirmation Modal */}
+            {stageToDelete && (
+                <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 backdrop-blur-sm animate-fade-in">
+                    <div className="bg-white dark:bg-[#112217] border border-slate-200 dark:border-[#346544] rounded-2xl p-6 md:p-8 max-w-sm w-full mx-4 shadow-2xl flex flex-col items-center">
+                        <div className="size-16 rounded-full bg-red-100 dark:bg-red-900/30 text-red-500 flex items-center justify-center mb-4">
+                            <span className="material-symbols-outlined text-[32px]">warning</span>
+                        </div>
+                        <h3 className="text-xl font-bold text-slate-900 dark:text-white mb-2 uppercase tracking-tight text-center">Delete Stage?</h3>
+                        <p className="text-slate-500 dark:text-slate-400 text-sm text-center mb-8">
+                            Are you sure you want to delete this training stage? This action cannot be undone.
+                        </p>
+                        <div className="flex w-full gap-3">
+                            <button onClick={() => setStageToDelete(null)} className="flex-1 py-3 px-4 rounded-xl border border-slate-200 dark:border-[#346544] text-slate-700 dark:text-slate-300 font-bold uppercase hover:bg-slate-50 dark:hover:bg-[#1a2e22] transition-colors">
+                                Cancel
+                            </button>
+                            <button onClick={() => { removeItem(stageToDelete); setStageToDelete(null); }} className="flex-1 py-3 px-4 rounded-xl bg-red-500 text-white font-bold uppercase hover:bg-red-600 transition-colors shadow-lg shadow-red-500/20">
+                                Delete
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     );
 };
