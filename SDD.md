@@ -112,15 +112,17 @@
 1. **Server State (伺服器狀態)**：推薦引入 `@tanstack/react-query` 來呼叫 API (`/api/projects/xxx`)。React Query 會幫忙處理 Cache、Loading、Error 狀態。
 2. **Client State (客戶端狀態)**：如「目前播放到第幾個階段 (`currentStageIndex`)」、「播放器狀態 (PREPARING, PRACTICING, RESTING, FINISHED)」、「當前倒數秒數 (`timeLeft`)」，繼續保留使用 `Zustand` 或是 React 內建的 `useReducer`/`useState` 管理。
 
-### 6.2 核心元件分配 (Component Architecture)
+### 6.2 核心元件分配與頁面定義 (Component Architecture & Pages)
+為了溝通一致性，統一以下頁面與元件命名：
+- **首頁 (`Home.tsx` / Home Dashboard)**
+  - 應用程式啟動進入點。提供進入建立專案、或檢視 `My Projects` 等總覽功能。
+- **計畫設定頁 (`PracticeConfig.tsx` / Practice Configuration)**
+  - 使用者編輯專案設定與新增/編輯 `Stages` (訓練計畫階段) 的專屬頁面。
+  - 包含全局休息影片設定、新增 Stage 表單 (Rest Time、Video Segment 時間設定) 與拖曳排序等。
+- **播放器頁 (`PlayerDashboard.tsx` / Player Dashboard)**
+  - 執行訓練計畫的核心頁面。包含大型倒數計時器、影片自動切換、側邊 Timeline 進度追蹤 (訓練與休息時間)。
 - **`App.tsx`**
-  - 路由切換 (使用 `react-router-dom`)，負責在前台儀表板 (`PlayerDashboard`) 與後台編輯區 (`PracticeConfig`) 之間切換。
-- **設定區塊 (`PracticeConfig.tsx`)**
-  - 使用者編輯專案設定與 `Stages` 清單。
-  - 元件內調用 `useMutation` (React Query) 發送 `POST`/`PUT`/`DELETE` API 給 .NET Core 背景儲存。
-  - 清單拖曳排序可引入如 `@hello-pangea/dnd` 實作。
-- **播放器區塊 (`PlayerDashboard.tsx`)**
-  - 在 Component Mount 時發送 `GET /api/projects/{id}` 取得包含所有階段的完整菜單。
+  - 路由切換，負責在「首頁」、「計畫設定頁」與「播放器頁」之間狀態切換。
   - **`PlayerTimer`**：核心計時邏輯 (setInterval)，監控狀態 (秒數歸零時觸發狀態機切換)。
   - **`PlayerYoutube`**：包裝 `react-youtube`。透過接收目前階段的 `YoutubeUrl`, `StartSecond`, `EndSecond` 來動態命令 IFrame API (`loadVideoById({videoId, startSeconds...})`) 切換影片。
   - **`PlayerSpeech` (Hook 或 Context)**：監聽剩餘秒數，當等於 3, 2, 1 或是狀態變更時，呼叫 `window.speechSynthesis` 播報文字。

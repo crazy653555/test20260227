@@ -74,7 +74,7 @@ export const PracticeConfig: React.FC<PracticeConfigProps> = ({ onStartPractice,
     };
 
     const totalSeconds = useMemo(() => {
-        return items.reduce((acc, item) => acc + item.practiceDuration + item.restDuration, 0);
+        return items.reduce((acc, item) => acc + item.practiceSeconds + item.restSeconds, 0);
     }, [items]);
 
     const formatTotalTime = (secs: number) => {
@@ -85,10 +85,10 @@ export const PracticeConfig: React.FC<PracticeConfigProps> = ({ onStartPractice,
 
     const handleEditStart = (item: any) => {
         setEditingId(item.id);
-        setEditName(item.name);
+        setEditName(item.stageName);
         setEditUrl(item.youtubeUrl || '');
-        setEditPracticeDuration(secondsToTime(item.practiceDuration));
-        setEditRestDuration(secondsToTime(item.restDuration));
+        setEditPracticeDuration(secondsToTime(item.practiceSeconds));
+        setEditRestDuration(secondsToTime(item.restSeconds));
         setEditStartSecond(item.startSecond !== undefined ? secondsToTime(item.startSecond) : '00:00:00');
         setEditEndSecond(item.endSecond !== undefined ? secondsToTime(item.endSecond) : '');
     };
@@ -109,7 +109,9 @@ export const PracticeConfig: React.FC<PracticeConfigProps> = ({ onStartPractice,
         return (match && match[2].length === 11) ? match[2] : null;
     };
 
-    const handleEditSave = () => {
+    const handleEditSave = (e?: React.MouseEvent) => {
+        if (e) e.preventDefault();
+
         if (!editName || !editUrl) {
             alert('Please fill in both name and URL.');
             return;
@@ -130,10 +132,10 @@ export const PracticeConfig: React.FC<PracticeConfigProps> = ({ onStartPractice,
         }
 
         const payload = {
-            name: editName,
+            stageName: editName,
             youtubeUrl: editUrl,
-            practiceDuration: pracSec,
-            restDuration: restSec,
+            practiceSeconds: pracSec,
+            restSeconds: restSec,
             startSecond: editStartSecond ? startSec : undefined,
             endSecond: endSec,
         };
@@ -168,7 +170,7 @@ export const PracticeConfig: React.FC<PracticeConfigProps> = ({ onStartPractice,
                     <div className="w-full max-w-5xl mx-auto flex flex-col gap-6 p-4 md:p-8">
                         <div className="flex flex-col md:flex-row md:items-end justify-between gap-4 pb-6 border-b border-slate-200 dark:border-[#244730]">
                             <div className="flex flex-col gap-2">
-                                <button onClick={onBack} className="flex w-max items-center gap-2 text-sm text-[#19e65e] font-medium uppercase tracking-tight hover:underline">
+                                <button type="button" onClick={onBack} className="flex w-max items-center gap-2 text-sm text-[#19e65e] font-medium uppercase tracking-tight hover:underline">
                                     <span className="material-symbols-outlined text-[18px]">arrow_back</span>
                                     <span>Back to Project Overview</span>
                                 </button>
@@ -219,8 +221,8 @@ export const PracticeConfig: React.FC<PracticeConfigProps> = ({ onStartPractice,
 
                             {items.map((item, index) => {
                                 const startAcc = accumulatedTime;
-                                const endAcc = accumulatedTime + item.practiceDuration;
-                                accumulatedTime += (item.practiceDuration + item.restDuration);
+                                const endAcc = accumulatedTime + item.practiceSeconds;
+                                accumulatedTime += (item.practiceSeconds + item.restSeconds);
 
                                 const isEditing = editingId === item.id;
 
@@ -256,13 +258,13 @@ export const PracticeConfig: React.FC<PracticeConfigProps> = ({ onStartPractice,
                                                             <div className="absolute inset-0 bg-black/20 flex items-center justify-center opacity-0 group-hover/thumb:opacity-100 transition-opacity">
                                                                 <span className="material-symbols-outlined text-white text-4xl drop-shadow-lg">play_circle</span>
                                                             </div>
-                                                            <span className="absolute bottom-1 right-1 bg-black/70 px-1.5 py-0.5 rounded text-[10px] text-white font-mono">{secondsToTime(item.practiceDuration)}</span>
+                                                            <span className="absolute bottom-1 right-1 bg-black/70 px-1.5 py-0.5 rounded text-[10px] text-white font-mono">{secondsToTime(item.practiceSeconds)}</span>
                                                         </div>
 
                                                         <div className="flex flex-col flex-1 min-w-0 w-full">
                                                             <div className="flex justify-between items-start mr-16 sm:mr-0">
                                                                 <div className="flex-1 truncate">
-                                                                    <h3 className="font-bold text-slate-900 dark:text-white text-lg uppercase tracking-tight truncate">{item.name}</h3>
+                                                                    <h3 className="font-bold text-slate-900 dark:text-white text-lg uppercase tracking-tight truncate">{item.stageName}</h3>
                                                                     <p className="text-sm text-slate-500 dark:text-slate-400 mt-1 line-clamp-1 truncate">{item.youtubeUrl}</p>
                                                                 </div>
                                                             </div>
@@ -279,7 +281,7 @@ export const PracticeConfig: React.FC<PracticeConfigProps> = ({ onStartPractice,
                                                             </div>
 
                                                             <div className="flex flex-wrap items-center gap-4 mt-3 text-xs text-slate-500 dark:text-slate-400 bg-white/50 dark:bg-[#112217]/50 p-2 rounded-lg border border-slate-100 dark:border-[#244730]/50 w-fit">
-                                                                <span className="flex items-center gap-1 text-[#19e65e] font-bold uppercase tracking-tight"><span className="material-symbols-outlined text-[14px]">timer</span> Rest: {item.restDuration}s</span>
+                                                                <span className="flex items-center gap-1 text-[#19e65e] font-bold uppercase tracking-tight"><span className="material-symbols-outlined text-[14px]">timer</span> Rest: {item.restSeconds}s</span>
                                                                 {(item.startSecond !== undefined || item.endSecond !== undefined) && (
                                                                     <>
                                                                         <div className="w-px h-3 bg-slate-300 dark:bg-[#244730]"></div>
@@ -308,7 +310,7 @@ export const PracticeConfig: React.FC<PracticeConfigProps> = ({ onStartPractice,
                         </div>
 
                         <div className="flex justify-center mt-6 mb-20 pl-12 md:pl-0">
-                            <button onClick={handleAddNewClick} className="flex items-center gap-2 px-6 py-3 rounded-full border border-dashed border-slate-300 dark:border-[#346544] text-slate-500 dark:text-[#93c8a5] hover:border-[#19e65e] hover:text-[#19e65e] hover:bg-slate-50 dark:hover:bg-[#1a2e22] transition-all w-full md:w-auto justify-center uppercase tracking-tight font-bold">
+                            <button type="button" onClick={handleAddNewClick} className="flex items-center gap-2 px-6 py-3 rounded-full border border-dashed border-slate-300 dark:border-[#346544] text-slate-500 dark:text-[#93c8a5] hover:border-[#19e65e] hover:text-[#19e65e] hover:bg-slate-50 dark:hover:bg-[#1a2e22] transition-all w-full md:w-auto justify-center uppercase tracking-tight font-bold">
                                 <span className="material-symbols-outlined">add_circle</span>
                                 <span>Add New Stage</span>
                             </button>
@@ -376,16 +378,6 @@ export const PracticeConfig: React.FC<PracticeConfigProps> = ({ onStartPractice,
                             </div>
 
                             <div className="p-4 rounded-xl bg-slate-50 dark:bg-[#1a2e22] border border-slate-200 dark:border-[#244730] flex flex-col gap-4">
-                                <div className="flex items-center justify-between mb-1">
-                                    <div className="flex items-center gap-2 text-slate-500 dark:text-[#93c8a5]">
-                                        <span className="material-symbols-outlined">timer_off</span>
-                                        <h3 className="font-bold text-sm uppercase tracking-widest">Rest Time</h3>
-                                    </div>
-                                </div>
-                                <TimeSelect value={editRestDuration} onChange={setEditRestDuration} />
-                            </div>
-
-                            <div className="p-4 rounded-xl bg-slate-50 dark:bg-[#1a2e22] border border-slate-200 dark:border-[#244730] flex flex-col gap-4">
                                 <div className="flex items-center gap-2 mb-1 text-slate-500 dark:text-[#93c8a5]">
                                     <span className="material-symbols-outlined">movie</span>
                                     <h3 className="font-bold text-sm uppercase tracking-widest">Video Segment</h3>
@@ -401,13 +393,23 @@ export const PracticeConfig: React.FC<PracticeConfigProps> = ({ onStartPractice,
                                     </div>
                                 </div>
                             </div>
+
+                            <div className="p-4 rounded-xl bg-slate-50 dark:bg-[#1a2e22] border border-slate-200 dark:border-[#244730] flex flex-col gap-4">
+                                <div className="flex items-center justify-between mb-1">
+                                    <div className="flex items-center gap-2 text-slate-500 dark:text-[#93c8a5]">
+                                        <span className="material-symbols-outlined">timer_off</span>
+                                        <h3 className="font-bold text-sm uppercase tracking-widest">Rest Time</h3>
+                                    </div>
+                                </div>
+                                <TimeSelect value={editRestDuration} onChange={setEditRestDuration} />
+                            </div>
                         </div>
 
                         <div className="p-6 border-t border-slate-200 dark:border-[#244730] bg-white dark:bg-[#112217] flex gap-3">
-                            <button onClick={() => setEditingId(null)} className="flex-1 py-3 px-4 rounded-lg border border-slate-300 dark:border-[#346544] text-slate-700 dark:text-slate-300 font-bold text-sm uppercase tracking-tight hover:bg-slate-50 dark:hover:bg-[#1a2e22] transition-colors">
+                            <button type="button" onClick={() => setEditingId(null)} className="flex-1 py-3 px-4 rounded-lg border border-slate-300 dark:border-[#346544] text-slate-700 dark:text-slate-300 font-bold text-sm uppercase tracking-tight hover:bg-slate-50 dark:hover:bg-[#1a2e22] transition-colors">
                                 Cancel
                             </button>
-                            <button onClick={handleEditSave} className="flex-1 py-3 px-4 rounded-lg bg-[#19e65e] text-[#112217] font-bold text-sm uppercase tracking-tight hover:bg-[#19e65e]/90 transition-colors shadow-lg shadow-[#19e65e]/20">
+                            <button type="button" onClick={handleEditSave} className="flex-1 py-3 px-4 rounded-lg bg-[#19e65e] text-[#112217] font-bold text-sm uppercase tracking-tight hover:bg-[#19e65e]/90 transition-colors shadow-lg shadow-[#19e65e]/20">
                                 Save Stage
                             </button>
                         </div>

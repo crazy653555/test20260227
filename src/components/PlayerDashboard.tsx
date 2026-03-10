@@ -19,6 +19,7 @@ export const PlayerDashboard: React.FC<PlayerDashboardProps> = ({ onExit }) => {
     const [isPaused, setIsPaused] = useState(false);
     const [restStartTime, setRestStartTime] = useState(0);
     const [isFullscreen, setIsFullscreen] = useState(false);
+    const restVideoRandomizedRef = useRef(false);
 
     const { items, restVideoUrl } = usePracticeStore();
     const { speak, cancel } = useTTS();
@@ -59,15 +60,21 @@ export const PlayerDashboard: React.FC<PlayerDashboardProps> = ({ onExit }) => {
         }
 
         if (period === 'PREPARING') {
-            speak(`準備開始，接下來是：${currentItem.name}`);
-        } else if (period === 'RESTING') {
+            speak(`準備開始，接下來是：${currentItem.stageName}`);
+        } else if (period === 'PRACTICING' && timeLeft === 3) {
             if (nextItem) {
-                speak(`休息一下。下一個動作是：${nextItem.name}`);
+                speak(`休息一下。下一個動作是：${nextItem.stageName}`);
             } else {
-                speak('最後的休息時間，即將完成訓練！');
+                speak('快結束了，堅持下去！');
             }
-        } else if (period === 'PRACTICING' && timeLeft === currentItem.practiceDuration) {
-            speak('開始！');
+        } else if (period === 'PRACTICING' && timeLeft === currentItem.practiceSeconds) {
+            speak('開始');
+        } else if (period === 'RESTING' && timeLeft === 3) {
+            const nextIdx = items.findIndex(i => i.id === currentItem.id) + 1;
+            const next = items[nextIdx];
+            if (next) {
+                speak(`準備開始，接下來是：${next.stageName}`);
+            }
         }
 
         // 倒數 3 秒提示
@@ -78,7 +85,7 @@ export const PlayerDashboard: React.FC<PlayerDashboardProps> = ({ onExit }) => {
         } else if ((period === 'PRACTICING' || period === 'RESTING') && timeLeft === 1 && !isPaused) {
             speak('一');
         }
-    }, [period, currentItem?.name, nextItem?.name, timeLeft, isPaused, speak]);
+    }, [period, currentItem?.stageName, nextItem?.stageName, timeLeft, isPaused, speak]);
 
     // 倒數計時核心
     useEffect(() => {
@@ -97,12 +104,13 @@ export const PlayerDashboard: React.FC<PlayerDashboardProps> = ({ onExit }) => {
 
         if (period === 'PREPARING') {
             setPeriod('PRACTICING');
-            setTimeLeft(currentItem.practiceDuration);
+            setTimeLeft(currentItem.practiceSeconds);
         } else if (period === 'PRACTICING') {
-            if (currentItem.restDuration > 0) {
+            if (currentItem.restSeconds > 0) {
                 setRestStartTime(Math.floor(Math.random() * 300));
+                restVideoRandomizedRef.current = false; // Reset randomization state for the new rest period
                 setPeriod('RESTING');
-                setTimeLeft(currentItem.restDuration);
+                setTimeLeft(currentItem.restSeconds);
             } else {
                 handleNextItem();
             }
@@ -113,19 +121,33 @@ export const PlayerDashboard: React.FC<PlayerDashboardProps> = ({ onExit }) => {
 
     // 影片狀態輪詢
     useEffect(() => {
-        if (period !== 'PRACTICING' || !playerRef.current || isPaused) return;
+        if (!playerRef.current || isPaused) return;
 
         const checkInterval = setInterval(async () => {
-            if (playerRef.current && typeof playerRef.current.getCurrentTime === 'function') {
+            if (playerRef.current && typeof playerRef.current.getCurrentTime === 'function' && typeof playerRef.current.getPlayerState === 'function') {
                 try {
+                    const state = playerRef.current.getPlayerState();
                     const currentTime = await playerRef.current.getCurrentTime();
-                    const startSec = currentItem.startSecond ?? 0;
 
-                    if (currentItem.endSecond && currentTime >= currentItem.endSecond) {
-                        playerRef.current.seekTo(startSec, true);
-                    } else if (playerRef.current.getPlayerState() === 0) {
-                        playerRef.current.seekTo(startSec, true);
-                        playerRef.current.playVideo();
+                    if (period === 'PRACTICING') {
+                        const startSec = currentItem.startSecond ?? 0;
+                        if (currentItem.endSecond && currentTime >= currentItem.endSecond) {
+                            playerRef.current.seekTo(startSec, true);
+                        } else if (state === 0) { // 播放結束
+                            playerRef.current.seekTo(startSec, true);
+                            playerRef.current.playVideo();
+                        }
+                    } else if (period === 'RESTING') {
+                        if (state === 1 && !restVideoRandomizedRef.current) {
+                            const duration = await playerRef.current.getDuration();
+                            if (duration > 60) {
+                                const randomStart = Math.floor(Math.random() * (duration - 30));
+                                playerRef.current.seekTo(randomStart, true);
+                            }
+                            restVideoRandomizedRef.current = true;
+                        } else if (state === 0) { // 播放結束則重新開始
+                            playerRef.current.playVideo();
+                        }
                     }
                 } catch (e) {
                     console.error("Error getting current time", e);
@@ -136,21 +158,21 @@ export const PlayerDashboard: React.FC<PlayerDashboardProps> = ({ onExit }) => {
         return () => clearInterval(checkInterval);
     }, [period, currentItem, isPaused]);
 
-    // 處理播放器 Ready 的事件
-    // 針對有指定起訖時段的「訓練影片」，或是想要亂數時間起播的「休息影片」
-    const onPlayerReady: YouTubeProps['onReady'] = (event) => {
-        playerRef.current = event.target;
-        if (period === 'PRACTICING' && currentStage?.startSecond) {
-            event.target.seekTo(currentStage.startSecond, true);
-        } else if (period === 'RESTING' && restVideoUrl) {
-            // 休息影片：嘗試給個隨機啟動時間 (如果是長影片)，這裡簡化為隨便跳轉一下
-            const duration = event.target.getDuration();
-            if (duration > 60) {
-                const randomStart = Math.floor(Math.random() * (duration - 30));
-                event.target.seekTo(randomStart, true);
+    useEffect(() => {
+        if (playerRef.current && typeof playerRef.current.pauseVideo === 'function' && typeof playerRef.current.playVideo === 'function') {
+            if (isPaused) {
+                playerRef.current.pauseVideo();
+            } else {
+                playerRef.current.playVideo();
             }
         }
-        event.target.playVideo(); // Ensure video plays on ready
+    }, [isPaused]);
+
+    const onPlayerReady: YouTubeProps['onReady'] = (event) => {
+        playerRef.current = event.target;
+        const startSec = period === 'RESTING' ? restStartTime : (currentStage?.startSecond ?? 0);
+        event.target.loadVideoById({ videoId: activeVideoId, startSeconds: startSec });
+        event.target.playVideo();
     };
 
     useEffect(() => {
@@ -172,6 +194,13 @@ export const PlayerDashboard: React.FC<PlayerDashboardProps> = ({ onExit }) => {
         } else {
             setPeriod('FINISHED');
         }
+    };
+
+    const handleJumpToStage = (idx: number) => {
+        setCurrentIndex(idx);
+        setPeriod('PREPARING');
+        setTimeLeft(PREPARE_SECONDS);
+        setIsPaused(false);
     };
 
     const skipCurrentStage = () => setTimeLeft(0);
@@ -233,7 +262,7 @@ export const PlayerDashboard: React.FC<PlayerDashboardProps> = ({ onExit }) => {
         );
     }
 
-    const totalSeconds = period === 'PREPARING' ? PREPARE_SECONDS : (period === 'PRACTICING' ? currentItem.practiceDuration : currentItem.restDuration);
+    const totalSeconds = period === 'PREPARING' ? PREPARE_SECONDS : (period === 'PRACTICING' ? currentItem.practiceSeconds : currentItem.restSeconds);
     const progressPercent = Math.max(0, Math.min(100, ((totalSeconds - timeLeft) / totalSeconds) * 100));
 
     return (
@@ -246,7 +275,7 @@ export const PlayerDashboard: React.FC<PlayerDashboardProps> = ({ onExit }) => {
                     </button>
                     <div className="h-6 w-px bg-white/10 mx-1 md:mx-2"></div>
                     <div>
-                        <h2 className="text-white font-bold text-sm md:text-base leading-tight truncate max-w-[150px] md:max-w-xs">{currentItem.name}</h2>
+                        <h2 className="text-white font-bold text-sm md:text-base leading-tight truncate max-w-[150px] md:max-w-xs">{currentItem.stageName}</h2>
                         <div className="flex items-center gap-2 mt-0.5">
                             <span className="size-2 rounded-full bg-[#13ec5b] animate-pulse"></span>
                             <span className="text-[#13ec5b] text-[10px] md:text-xs font-bold tracking-wider uppercase">{getStatusText()}</span>
@@ -321,7 +350,7 @@ export const PlayerDashboard: React.FC<PlayerDashboardProps> = ({ onExit }) => {
                             const isCurrent = idx === currentIndex;
 
                             return (
-                                <div key={item.id} className={`relative z-10 flex gap-4 transition-all ${isPast ? 'opacity-50 grayscale' : ''} ${isCurrent ? 'transform scale-[1.02]' : ''}`}>
+                                <div key={item.id} onClick={() => handleJumpToStage(idx)} className={`relative z-10 flex gap-4 transition-all cursor-pointer hover:bg-white/5 rounded-xl p-1 ${isPast ? 'opacity-50 grayscale' : ''} ${isCurrent ? 'transform scale-[1.02]' : ''}`}>
                                     <div className="flex flex-col items-center mt-1">
                                         <div className={`size-8 rounded-full border-2 flex items-center justify-center bg-[#112116] z-10 transition-colors ${isCurrent ? 'border-[#13ec5b] text-[#13ec5b] shadow-[0_0_15px_rgba(19,236,91,0.4)]' : isPast ? 'border-[#346544] text-[#346544]' : 'border-slate-600 text-slate-500'}`}>
                                             {isPast ? <span className="material-symbols-outlined text-[14px]">check</span> : <span className="text-[10px] font-mono font-bold hover:cursor-default">{idx + 1}</span>}
@@ -329,8 +358,13 @@ export const PlayerDashboard: React.FC<PlayerDashboardProps> = ({ onExit }) => {
                                     </div>
                                     <div className={`flex-1 rounded-xl p-3 border transition-all ${isCurrent ? 'bg-[#1a2e22] border-[#13ec5b]/50 shadow-[0_0_20px_rgba(19,236,91,0.1)]' : 'bg-[#15291b] border-transparent'}`}>
                                         <div className="flex justify-between items-start mb-1 gap-2">
-                                            <h4 className={`font-medium text-sm truncate ${isCurrent ? 'text-white' : 'text-slate-300'}`}>{item.name}</h4>
-                                            <span className={`text-xs font-mono shrink-0 ${isCurrent ? 'text-[#13ec5b]' : 'text-slate-500'}`}>{formatTime(item.practiceDuration)}</span>
+                                            <div className="flex flex-col">
+                                                <h4 className={`font-medium text-sm truncate ${isCurrent ? 'text-white' : 'text-slate-300'}`}>{item.stageName}</h4>
+                                                {item.restSeconds > 0 && (
+                                                    <span className={`text-[10px] mt-0.5 ${isCurrent ? 'text-[#13ec5b]/80' : 'text-slate-500'}`}>Rest: {formatTime(item.restSeconds)}</span>
+                                                )}
+                                            </div>
+                                            <span className={`text-xs font-mono shrink-0 ${isCurrent ? 'text-[#13ec5b]' : 'text-slate-500'}`}>{formatTime(item.practiceSeconds)}</span>
                                         </div>
                                         {isCurrent && (
                                             <div className="flex gap-2 text-[10px] mt-2">
