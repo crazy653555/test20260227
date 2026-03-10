@@ -119,7 +119,7 @@
 - **計畫設定頁 (`PracticeConfig.tsx` / Practice Configuration)**
   - 使用者編輯專案設定與新增/編輯 `Stages` (訓練計畫階段) 的專屬頁面。
   - 包含全局休息影片設定、新增 Stage 表單 (Rest Time、Video Segment 時間設定) 與拖曳排序等。
-  - 具備操作防呆與提示：刪除訓練時跳出確認視窗；調整影片片段時起訖時間連動檢查防備（Start Time 需小於 End Time）。
+  - 具備操作防呆與提示：刪除訓練階段時，提供精緻的警告 Modal 彈出視窗（取代瀏覽器預設 alert）；調整影片片段時具備起訖時間連動防呆功能，若設定結尾時間，系統自動確保開始必須小於結束時間，並支援 End (Play to end) 直至影片結束。
 - **播放器頁 (`PlayerDashboard.tsx` / Player Dashboard)**
   - 執行訓練計畫的核心頁面。包含大型倒數計時器、影片自動切換、側邊 Timeline 進度追蹤 (訓練與休息時間)。
   - 全螢幕模式 (Fullscreen) 下，擴充顯示下一個訓練項目的提示資訊。
