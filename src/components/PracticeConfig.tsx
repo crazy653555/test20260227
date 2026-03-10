@@ -56,6 +56,13 @@ export const PracticeConfig: React.FC<PracticeConfigProps> = ({ onStartPractice,
     const [editRestDuration, setEditRestDuration] = useState('00:00:15');
     const [editStartSecond, setEditStartSecond] = useState('00:00:00');
     const [editEndSecond, setEditEndSecond] = useState('');
+    const [localRestUrl, setLocalRestUrl] = useState('');
+
+    React.useEffect(() => {
+        if (restVideoUrl && !localRestUrl) {
+            setLocalRestUrl(restVideoUrl);
+        }
+    }, [restVideoUrl]);
 
     const timeToSeconds = (timeStr: string) => {
         if (!timeStr) return 0;
@@ -105,8 +112,31 @@ export const PracticeConfig: React.FC<PracticeConfigProps> = ({ onStartPractice,
 
     const extractVideoId = (url: string) => {
         const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|&v=)([^#&?]*).*/;
-        const match = url.match(regExp);
+        const match = url?.match(regExp);
         return (match && match[2].length === 11) ? match[2] : null;
+    };
+
+    const handleStartSecondChange = (val: string) => {
+        setEditStartSecond(val);
+        const startSec = timeToSeconds(val);
+        const endSec = editEndSecond ? timeToSeconds(editEndSecond) : undefined;
+        if (endSec !== undefined && startSec >= endSec) {
+            setEditEndSecond(''); // 連動防呆：若開始時間大於等於結束時間，重設結束時間為 End
+        }
+    };
+
+    const handleEndSecondChange = (val: string) => {
+        if (!val) {
+            setEditEndSecond('');
+            return;
+        }
+        const startSec = timeToSeconds(editStartSecond);
+        const endSec = timeToSeconds(val);
+        if (endSec <= startSec) {
+            alert('影片結束時間必須大於開始時間！(End time must be greater than Start time!)');
+            return;
+        }
+        setEditEndSecond(val);
     };
 
     const handleEditSave = (e?: React.MouseEvent) => {
@@ -201,16 +231,17 @@ export const PracticeConfig: React.FC<PracticeConfigProps> = ({ onStartPractice,
                                         <input
                                             type="url"
                                             className="w-full bg-slate-50 dark:bg-[#112217] border border-slate-200 dark:border-[#346544] rounded-lg py-2.5 pl-10 pr-4 text-sm text-slate-900 dark:text-white focus:outline-none focus:border-[#19e65e] focus:ring-1 focus:ring-[#19e65e]"
-                                            value={restVideoUrl}
-                                            onChange={e => setRestVideoUrl(e.target.value)}
+                                            value={localRestUrl}
+                                            onChange={e => setLocalRestUrl(e.target.value)}
+                                            onBlur={() => setRestVideoUrl(localRestUrl)}
                                             placeholder="https://www.youtube.com/watch?v=..."
                                         />
                                     </div>
                                     <p className="text-xs text-slate-500 dark:text-[#93c8a5]">Plays during rest periods. Auto-starts at a random time if it's a long video.</p>
                                 </div>
-                                {restVideoUrl && extractVideoId(restVideoUrl) && (
+                                {localRestUrl && extractVideoId(localRestUrl) && (
                                     <div className="w-full md:w-48 aspect-video rounded-xl overflow-hidden bg-black shrink-0 border border-slate-200 dark:border-[#244730]">
-                                        <img className="w-full h-full object-cover opacity-80" src={`https://img.youtube.com/vi/${extractVideoId(restVideoUrl)}/hqdefault.jpg`} alt="Rest Video Preview" />
+                                        <img className="w-full h-full object-cover opacity-80" src={`https://img.youtube.com/vi/${extractVideoId(localRestUrl)}/hqdefault.jpg`} alt="Rest Video Preview" />
                                     </div>
                                 )}
                             </div>
@@ -282,7 +313,7 @@ export const PracticeConfig: React.FC<PracticeConfigProps> = ({ onStartPractice,
                                                                 <button onClick={() => handleEditStart(item)} className={`size-8 rounded-full hover:bg-slate-100 dark:hover:bg-[#244730] transition-colors flex items-center justify-center ${isEditing ? 'text-[#19e65e]' : 'text-slate-400 hover:text-blue-400'}`} title="Edit">
                                                                     <span className="material-symbols-outlined text-[18px]">edit</span>
                                                                 </button>
-                                                                <button onClick={() => removeItem(item.id)} className="size-8 rounded-full hover:bg-slate-100 dark:hover:bg-[#244730] text-slate-400 hover:text-red-400 transition-colors flex items-center justify-center" title="Delete">
+                                                                <button onClick={() => { if (window.confirm('確定要刪除這個訓練階段嗎？(Are you sure you want to delete this stage?)')) removeItem(item.id); }} className="size-8 rounded-full hover:bg-slate-100 dark:hover:bg-[#244730] text-slate-400 hover:text-red-400 transition-colors flex items-center justify-center" title="Delete">
                                                                     <span className="material-symbols-outlined text-[18px]">delete</span>
                                                                 </button>
                                                             </div>
@@ -392,11 +423,11 @@ export const PracticeConfig: React.FC<PracticeConfigProps> = ({ onStartPractice,
                                 <div className="flex flex-col gap-3">
                                     <div className="flex flex-col gap-1">
                                         <span className="text-xs font-bold uppercase text-slate-500 dark:text-slate-400 mb-1">Start Time</span>
-                                        <TimeSelect value={editStartSecond} onChange={setEditStartSecond} />
+                                        <TimeSelect value={editStartSecond} onChange={handleStartSecondChange} />
                                     </div>
                                     <div className="flex flex-col gap-1">
                                         <span className="text-xs font-bold uppercase text-slate-500 dark:text-slate-400 mb-1">End Time</span>
-                                        <TimeSelect value={editEndSecond} onChange={setEditEndSecond} allowEmpty={true} />
+                                        <TimeSelect value={editEndSecond} onChange={handleEndSecondChange} allowEmpty={true} />
                                     </div>
                                 </div>
                             </div>

@@ -92,11 +92,11 @@ export const usePracticeStore = () => {
         const swapIndex = direction === 'UP' ? index - 1 : index + 1;
         [newItems[index], newItems[swapIndex]] = [newItems[swapIndex], newItems[index]];
 
+        // Optimistically update cache to prevent layout thrashing/scrolling
+        queryClient.setQueryData(['stages', PROJECT_ID], newItems);
+
         // Re-assign orderIdx for all to be safe
         const updates = newItems.map((item, idx) => ({ id: item.id, orderIdx: idx }));
-
-        // Optimistically update cache to feel snappy? Or just let mutation invalidate.
-        // For simplicity, we just mutate and wait for refetch.
         reorderMutation.mutate(updates);
     };
 

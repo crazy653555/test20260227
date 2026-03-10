@@ -351,6 +351,18 @@ export const PlayerDashboard: React.FC<PlayerDashboardProps> = ({ onExit }) => {
                         <div className="absolute inset-0 bg-transparent z-10" />
                         <div className="absolute inset-x-0 bottom-0 h-1/3 bg-gradient-to-t from-black/80 to-transparent pointer-events-none" />
                     </div>
+
+                    {/* Fullscreen Next Up Indicator */}
+                    {isFullscreen && (
+                        <div className="absolute bottom-12 right-8 z-30 pointer-events-none flex flex-col items-end animate-fade-in-up">
+                            <div className="bg-black/60 backdrop-blur-md border border-white/10 rounded-xl px-5 py-3 shadow-2xl flex flex-col items-end">
+                                <span className="text-slate-400 text-[10px] font-bold tracking-[0.2em] mb-0.5 uppercase">Next Up</span>
+                                <span className="text-white text-base md:text-lg font-bold tracking-tight">
+                                    {period === 'PREPARING' ? currentItem.stageName : (period === 'PRACTICING' && currentItem.restSeconds > 0 ? 'Rest' : (nextItem ? nextItem.stageName : 'Finish'))}
+                                </span>
+                            </div>
+                        </div>
+                    )}
                 </div>
 
                 {/* Timeline Sidebar */}
