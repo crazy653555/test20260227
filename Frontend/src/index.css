@@ -1,13 +1,18 @@
+/* 載入 Google Fonts - Lexend 字體，適用於現代感十足的 UI */
 @import url('https://fonts.googleapis.com/css2?family=Lexend:wght@300;400;500;600;700&display=swap');
+/* 載入 Tailwind CSS 核心樣式 */
 @import "tailwindcss";
 
 @theme {
+  /* 定義專案專屬的綠色調 (Stitch Green) */
   --color-stitch-green: #13ec5b;
+  /* 定義全域字體變數 */
   --font-lexend: "Lexend", sans-serif;
 }
 
 @layer base {
   body {
+    /* 設定全域背景色為深色調，並套用 Lexend 字體 */
     @apply bg-[#0b0f10] text-[#eef6f0] antialiased overflow-x-hidden;
     font-family: var(--font-lexend);
     margin: 0;
@@ -22,7 +27,7 @@
   box-sizing: border-box;
 }
 
-/* 一些必要的共用 Utilities 可以在這裡保留，但不影響 Tailwind 的功能 */
+/* 共用工具類別：快速水平垂直置中 */
 .flex-center {
   @apply flex justify-center items-center;
 }

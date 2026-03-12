@@ -3306,11 +3306,11 @@
   "project": {
     "version": "1.0.0",
     "restore": {
-      "projectUniqueName": "C:\\D\\Project\\Test20260227\\Backend\\MyTrainingPlan.Api\\MyTrainingPlan.Api.csproj",
+      "projectUniqueName": "C:\\D\\Project\\MyTrainingPlan\\Backend\\MyTrainingPlan.Api\\MyTrainingPlan.Api.csproj",
       "projectName": "MyTrainingPlan.Api",
-      "projectPath": "C:\\D\\Project\\Test20260227\\Backend\\MyTrainingPlan.Api\\MyTrainingPlan.Api.csproj",
+      "projectPath": "C:\\D\\Project\\MyTrainingPlan\\Backend\\MyTrainingPlan.Api\\MyTrainingPlan.Api.csproj",
       "packagesPath": "C:\\Users\\crazy\\.nuget\\packages\\",
-      "outputPath": "C:\\D\\Project\\Test20260227\\Backend\\MyTrainingPlan.Api\\obj\\",
+      "outputPath": "C:\\D\\Project\\MyTrainingPlan\\Backend\\MyTrainingPlan.Api\\obj\\",
       "projectStyle": "PackageReference",
       "fallbackFolders": [
         "C:\\Program Files (x86)\\Microsoft Visual Studio\\Shared\\NuGetPackages"
