@@ -1,11 +1,20 @@
-﻿import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo } from 'react';
 import { usePracticeStore } from '../hooks/usePracticeStore';
 
+/// <summary>
+/// 配置畫面的傳入屬性介面
+/// </summary>
 interface PracticeConfigProps {
+    /// 當使用者按下「開始訓練」時所觸發的函式
     onStartPractice?: () => void;
+    /// 按下返回按鈕時觸發的函式
     onBack?: () => void;
 }
 
+/// <summary>
+/// 共用的時間選擇元件 (包含時、分、秒下拉選單)
+/// 允許選擇填寫或是勾選 "Play to end"
+/// </summary>
 const TimeSelect = ({ value, onChange, allowEmpty = false, emptyLabel = "End" }: { value: string, onChange: (v: string) => void, allowEmpty?: boolean, emptyLabel?: string }) => {
     const isEmpty = value === '';
     const parts = isEmpty ? ['00', '00', '00'] : value.split(':');
@@ -91,6 +100,7 @@ export const PracticeConfig: React.FC<PracticeConfigProps> = ({ onStartPractice,
         return `${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
     };
 
+    // 開始編輯某一項階段
     const handleEditStart = (item: any) => {
         setEditingId(item.id);
         setEditName(item.stageName);
@@ -101,34 +111,39 @@ export const PracticeConfig: React.FC<PracticeConfigProps> = ({ onStartPractice,
         setEditEndSecond(item.endSecond !== undefined ? secondsToTime(item.endSecond) : '');
     };
 
+    // 點擊新增新的階段並重設表單狀態
     const handleAddNewClick = () => {
         setEditingId('NEW');
         setEditName('');
         setEditUrl('');
+        // 預設給予一些基礎秒數
         setEditPracticeDuration('00:01:00');
         setEditRestDuration('00:00:15');
         setEditStartSecond('00:00:00');
         setEditEndSecond('');
     };
 
+    // 解析出 Youtube ID
     const extractVideoId = (url: string) => {
         const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|&v=)([^#&?]*).*/;
         const match = url?.match(regExp);
         return (match && match[2].length === 11) ? match[2] : null;
     };
 
+    // 當開始秒數變更時的處理邏輯
     const handleStartSecondChange = (val: string) => {
         setEditStartSecond(val);
         const startSec = timeToSeconds(val);
         if (editEndSecond) {
             const endSec = timeToSeconds(editEndSecond);
             if (endSec <= startSec) {
-                // 自動連動，結束時間大於開始時間 1 秒
+                // 自動防呆：若結束比開始早，則修正結束秒數 = 開始秒數 + 1
                 setEditEndSecond(secondsToTime(startSec + 1));
             }
         }
     };
 
+    // 當結束秒數變更時的處理邏輯
     const handleEndSecondChange = (val: string) => {
         if (!val) {
             setEditEndSecond('');
@@ -137,18 +152,19 @@ export const PracticeConfig: React.FC<PracticeConfigProps> = ({ onStartPractice,
         const startSec = timeToSeconds(editStartSecond);
         const endSec = timeToSeconds(val);
         if (endSec <= startSec) {
-            // 防呆連動，自動修正為開始時間 + 1 秒
+            // 防呆機制：直接自動糾正結束時間
             setEditEndSecond(secondsToTime(startSec + 1));
             return;
         }
         setEditEndSecond(val);
     };
 
+    // 儲存正在編輯中或新增中的資料
     const handleEditSave = (e?: React.MouseEvent) => {
         if (e) e.preventDefault();
 
         if (!editName || !editUrl) {
-            alert('Please fill in both name and URL.');
+            alert('請完整填寫名稱與網址');
             return;
         }
 
@@ -158,11 +174,11 @@ export const PracticeConfig: React.FC<PracticeConfigProps> = ({ onStartPractice,
         const restSec = timeToSeconds(editRestDuration);
 
         if (endSec !== undefined && endSec <= startSec) {
-            alert('Video end time must be greater than start time!');
+            alert('影片結束時間必須大於開始時間！');
             return;
         }
         if (pracSec <= 0) {
-            alert('Practice duration must be greater than 0');
+            alert('訓練時間必須大於 0 秒');
             return;
         }
 

@@ -1,4 +1,4 @@
-﻿import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import YouTube from 'react-youtube';
 import type { YouTubeProps } from 'react-youtube';
 import type { TimerState } from '../types';
@@ -6,17 +6,31 @@ import { usePracticeStore } from '../hooks/usePracticeStore';
 import { useTTS } from '../hooks/useTTS';
 import { Pause, Play, Square, SkipForward, Maximize2 } from 'lucide-react';
 
+/// <summary>
+/// 播放主控制面板介面
+/// </summary>
 interface PlayerDashboardProps {
+    /// 結束與離開按鈕綁定的回呼函式
     onExit: () => void;
 }
 
+// 每個新階段開始前的預備倒數秒數
 const PREPARE_SECONDS = 3;
 
+/// <summary>
+/// 播放與倒數的主畫面
+/// 主要依序處理預備、訓練中與休息中的各種顯示與 YouTube 影片控制
+/// </summary>
 export const PlayerDashboard: React.FC<PlayerDashboardProps> = ({ onExit }) => {
+    // 儲存當前播放到哪個階段項目 Index
     const [currentIndex, setCurrentIndex] = useState(0);
+    // 當下所處的狀態類型 (準備/訓練/休息等)
     const [period, setPeriod] = useState<TimerState>('PREPARING');
+    // 目前活動的剩餘秒數
     const [timeLeft, setTimeLeft] = useState(PREPARE_SECONDS);
+    // 是否暫停
     const [isPaused, setIsPaused] = useState(false);
+    // 休息期間如果是全域影片隨機跳轉的起始時間
     const [restStartTime, setRestStartTime] = useState(0);
     const [isFullscreen, setIsFullscreen] = useState(false);
     const restVideoRandomizedRef = useRef(false);
@@ -207,16 +221,20 @@ export const PlayerDashboard: React.FC<PlayerDashboardProps> = ({ onExit }) => {
         }
     }, [activeVideoId, period, currentItem?.startSecond, restStartTime]);
 
+    // 處理播放完成或跳過到下一個階段
     const handleNextItem = () => {
         if (currentIndex < items.length - 1) {
+            // 切換至下一個並回到預備狀態
             setCurrentIndex((prev) => prev + 1);
             setPeriod('PREPARING');
             setTimeLeft(PREPARE_SECONDS);
         } else {
+            // 所有階段都訓練完畢
             setPeriod('FINISHED');
         }
     };
 
+    // 處理手動點擊時間軸上的特定階段直接跳轉
     const handleJumpToStage = (idx: number) => {
         setCurrentIndex(idx);
         setPeriod('PREPARING');
@@ -224,8 +242,10 @@ export const PlayerDashboard: React.FC<PlayerDashboardProps> = ({ onExit }) => {
         setIsPaused(false);
     };
 
+    // 處理跳過目前訓練與休息，直接將剩餘時間歸零
     const skipCurrentStage = () => setTimeLeft(0);
 
+    // 切換全螢幕模式
     const toggleFullscreen = () => {
         if (!document.fullscreenElement) {
             containerRef.current?.requestFullscreen().catch(err => {
@@ -236,6 +256,7 @@ export const PlayerDashboard: React.FC<PlayerDashboardProps> = ({ onExit }) => {
         }
     };
 
+    // 監聽並同步全螢幕的系統變化
     useEffect(() => {
         const handleFullscreenChange = () => {
             setIsFullscreen(!!document.fullscreenElement);
@@ -244,6 +265,7 @@ export const PlayerDashboard: React.FC<PlayerDashboardProps> = ({ onExit }) => {
         return () => document.removeEventListener('fullscreenchange', handleFullscreenChange);
     }, []);
 
+    // 處理離開播放器畫面，先關閉 TTS 與全螢幕
     const handleExit = () => {
         cancel(); // Stop TTS
         if (document.fullscreenElement) {

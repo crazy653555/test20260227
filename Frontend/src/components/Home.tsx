@@ -1,10 +1,19 @@
 import React from 'react';
 
+/// <summary>
+/// 首頁元件的傳入屬性定義
+/// </summary>
 interface HomeProps {
+    /// 點擊「建立新專案」按鈕時觸發的回呼函式
     onCreateProject: () => void;
+    /// 點擊「查看專案」按鈕時觸發的回呼函式 (非必填)
     onViewProjects?: () => void;
 }
 
+/// <summary>
+/// 首頁 (儀表板) 首頁畫面 Component
+/// 負責顯示目前的專案清單與導覽列
+/// </summary>
 export const Home: React.FC<HomeProps> = ({ onCreateProject, onViewProjects }) => {
     return (
         <div className="bg-background-light dark:bg-background-dark text-slate-900 dark:text-slate-100 font-display min-h-screen flex flex-col overflow-x-hidden">
